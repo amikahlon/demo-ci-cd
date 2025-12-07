@@ -1,0 +1,43 @@
+name: Deploy Docker stack to EC2
+
+on:
+  push:
+    branches: [ main ]  
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # מוריד את הרפו (לא חובה לדיפלוי עצמו, אבל טוב ל-CI עתידי)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # מטעין את מפתח ה-SSH מה-secret
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      # בדיקה שהחיבור לשרת עובד
+      - name: Test SSH connection
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo '✅ Connected to EC2'"
+
+      # הדיפלוי עצמו בעזרת docker compose
+      - name: Deploy using docker compose
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+
+            cd /home/ubuntu/demo-ci-cd
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🧱 Rebuilding Docker containers..."
+            docker compose down
+            docker compose up -d --build
+
+            echo "✅ Deployment finished."
+          EOF
