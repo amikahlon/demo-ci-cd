@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server # מאיפה לבנות את ה־Docker image 
+      dockerfile: Dockerfile
+    container_name: demo-server # שם שהקונטיינר יקבל 
+    ports:
+      - "5000:5000" # מיפוי פורטים: פורט 5000 במכונה המקומית יפנה לפורט 5000 בתוך הקונטיינר 
+    networks:
+      - demo-net
+
+  nginx:
+    build:
+      context: .              # שורש הפרויקט
+      dockerfile: ./nginx/Dockerfile
+    container_name: demo-nginx
+    depends_on:
+      - server
+    ports:
+      - "80:80"
+    networks:
+      - demo-net
+
+networks:
+  demo-net:
+    driver: bridge
